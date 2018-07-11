@@ -28,7 +28,7 @@ def images_process_stream_handler(event, context):
         dynamodb = boto3.resource("dynamodb")
         table = dynamodb.Table(os.environ["TABLE_NAME"])
 
-        s3_client = boto3.client('s3')  # TODO 3
+        s3_client = boto3.client('s3')
 
         for record in event['Records']:
             # Process new records
@@ -55,7 +55,12 @@ def images_process_stream_handler(event, context):
                         )
 
                         labels = []
+                        contains_squirrel = False
                         for label in rekognition_response['Labels']:
+                            if label['Name'] == 'Squirrel':
+                                contains_squirrel = True
+                                logger.info('Its a squirrel!')
+
                             labels.append({"Name": label['Name'], "Confidence": str(label['Confidence'])})
 
                     # Update item with labels
@@ -71,6 +76,15 @@ def images_process_stream_handler(event, context):
                             ':l': labels
                         }
                     )
+
+                    # Save to S3 if contains a squirrel
+                    if contains_squirrel:
+                        with open(filename, 'rb') as image:
+                            s3_client.put_object(
+                                Body=image.read(),
+                                Bucket=os.environ["S3_BUCKET"],
+                                Key=''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(6)),
+                            )
 
                 else:  # Image not available or larger than 5MB
                     table.update_item(

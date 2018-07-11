@@ -87,10 +87,13 @@ Resources:
       Policies:
       - DynamoDBCrudPolicy:
           TableName: !Ref ImagesTable
+      - S3CrudPolicy:
+            BucketName: !Ref SquirrelBucket
       - RekognitionLabelsPolicy: {}
       Environment:
         Variables:
           TABLE_NAME: !Ref ImagesTable
+          S3_BUCKET: !Ref SquirrelBucket
       Events:
         CredsTable:
           Type: DynamoDB
@@ -101,6 +104,31 @@ Resources:
                 - StreamArn
             StartingPosition: TRIM_HORIZON
             BatchSize: 100
+
+  SquirrelBucket:
+    Type: AWS::S3::Bucket
+
+  SquirrelSNSTopic:
+    Type: AWS::SNS::Topic
+
+  SquirrelProcessFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: build/
+      Handler: s3_events.process_s3_handler
+      Policies:
+      - AmazonS3ReadOnlyAccess
+      - SNSPublishMessagePolicy:
+            TopicName:  !GetAtt SquirrelSNSTopic.TopicName
+      Environment:
+        Variables:
+          SNS_TOPIC: !Ref SquirrelSNSTopic
+      Events:
+        PhotoUpload:
+          Type: S3
+          Properties:
+            Bucket: !Ref SquirrelBucket
+            Events: s3:ObjectCreated:*
 
 Outputs:
 
