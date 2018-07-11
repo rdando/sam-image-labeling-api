@@ -67,3 +67,62 @@ def post_image_lambda_handler(event, context):
                 "message": "Invalid JSON Body."
             })
         }
+
+
+def list_image_urls_handler(event, context):
+    """
+    Scan an entire DynamoDB table and return all items (DO NOT DO THIS AT HOME!!!!)
+    """
+    try:
+        table = dynamodb.Table(os.environ["TABLE_NAME"])
+        response = table.scan()
+
+        items = []
+        for i in response['Items']:
+            items.append(i)
+
+        while 'LastEvaluatedKey' in response:
+            response = table.scan(ExclusiveStartKey=response['LastEvaluatedKey'])
+            for i in response['Items']:
+                items.append(i)
+
+        return {
+            "statusCode": 200,
+            "body": json.dumps({"imageUrls": items})
+        }
+
+    except Exception as e:
+        logger.error('Incorrect event structure: {}'.format(e))
+        return {
+            "statusCode": 500,
+            "body": json.dumps({
+                "message": "Delete failure due to incorrect call structure."
+            })
+        }
+
+
+def delete_image_url_handler(event, context):
+    """
+    Remove an image URL from a table
+    """
+    try:
+        image_url = event["pathParameters"]["url"]
+
+        table = dynamodb.Table(os.environ["TABLE_NAME"])
+        table.delete_item(Key={'id': image_url})
+
+        return {
+            "statusCode": 200,
+            "body": json.dumps({
+                "message": "Image URL '{}' deleted successfully".format(image_url)
+            })
+        }
+
+    except Exception as e:
+        logger.error('Incorrect event structure: {}'.format(e))
+        return {
+            "statusCode": 500,
+            "body": json.dumps({
+                "message": "Delete failure due to incorrect call structure."
+            })
+        }

@@ -27,6 +27,42 @@ Resources:
             Path: /images
             Method: post
 
+  ListImagesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: build/
+      Handler: app.list_image_urls_handler
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName: !Ref ImagesTable
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref ImagesTable
+      Events:
+        ListImageUrls:
+          Type: Api
+          Properties:
+            Path: /images
+            Method: get
+
+  DeleteImageUrlFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: build/
+      Handler: app.delete_image_url_handler
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName: !Ref ImagesTable
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref ImagesTable
+      Events:
+        DeleteImage:
+          Type: Api
+          Properties:
+            Path: /images/{url+}
+            Method: delete
+
   ImagesTable:
     Type: AWS::DynamoDB::Table
     Properties:
