@@ -1,0 +1,47 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Sample SAM Template for aws-meetup-demo
+
+Globals:
+  Function:
+    Runtime: python2.7
+    Timeout: 30
+
+Resources:
+
+  PostImageFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: build/
+      Handler: app.post_image_lambda_handler
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName: !Ref ImagesTable
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref ImagesTable
+      Events:
+        PostImageUrl:
+          Type: Api
+          Properties:
+            Path: /images
+            Method: post
+
+  ImagesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
+Outputs:
+
+  ApiUrl:
+    Description: "API Gateway endpoint URL for Prod stage"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/images/"
