@@ -75,6 +75,32 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
+      StreamSpecification:
+        StreamViewType: KEYS_ONLY
+
+  ImagesProcessStream:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: build/
+      Handler: db_events.images_process_stream_handler
+      Timeout: 300
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName: !Ref ImagesTable
+      - RekognitionLabelsPolicy: {}
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref ImagesTable
+      Events:
+        CredsTable:
+          Type: DynamoDB
+          Properties:
+            Stream:
+              Fn::GetAtt:
+                - ImagesTable
+                - StreamArn
+            StartingPosition: TRIM_HORIZON
+            BatchSize: 100
 
 Outputs:
 
